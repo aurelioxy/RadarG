@@ -35,7 +35,7 @@
     </div>
 
     <div class="card master-signal">
-        <div class="label">Veredito Baseado no Fluxo (IBOV/DÓLAR Spot)</div>
+        <div class="label">Veredito Baseado no Fluxo (Spot / Macro)</div>
         <div id="main-verdict" class="verdict">ANALISANDO...</div>
         <div class="prob-bar"><div id="prob-fill" class="prob-fill"></div></div>
         <div id="main-prob" class="stats">Sincronizando dados macro e micro...</div>
@@ -43,12 +43,12 @@
 
     <div class="grid">
         <div class="card">
-            <span class="label">IBOV (Sinal p/ WIN)</span>
+            <span class="label">BOVA11 (Proxy p/ WIN)</span>
             <span id="win-price" class="price">---</span>
             <div id="win-range" class="stats">Range: -- | Vol: --</div>
         </div>
         <div class="card">
-            <span class="label">DÓLAR (Sinal p/ WDO)</span>
+            <span class="label">DÓLAR Spot (TwelveData)</span>
             <span id="wdo-price" class="price">---</span>
             <div id="wdo-range" class="stats">Range: -- | Vol: --</div>
         </div>
@@ -65,15 +65,13 @@
     <script>
         const BRAPI_KEY = 'pezVZGKkdR3gYuJPJWN9rB';
         const TWELVE_KEY = '55933fcca4154a0f901d96d1d9097ecf';
-        const STOCKS = ['PETR4', 'VALE3', 'ITUB4', 'BBAS3', 'GGBR4', 'ABEV3', 'WEGE3'];
+        // Removemos o IBOV e USDBRL da Brapi. Adicionamos o BOVA11.
+        const STOCKS = ['BOVA11', 'PETR4', 'VALE3', 'ITUB4', 'BBAS3', 'GGBR4', 'ABEV3', 'WEGE3'];
 
         async function engine() {
             try {
-                // Cria a lista com todos os ativos
-                const ativos = ['IBOV', 'USDBRL', ...STOCKS];
-                
-                // Dispara os pedidos separadamente para burlar o bloqueio do plano gratuito
-                const promessasBrapi = ativos.map(ativo => 
+                // 1. Coleta B3 via Brapi (Ações e ETFs não têm bloqueio)
+                const promessasBrapi = STOCKS.map(ativo => 
                     fetch(`https://brapi.dev/api/quote/${ativo}?token=${BRAPI_KEY}`)
                         .then(res => res.json())
                         .catch(err => ({ results: [] }))
@@ -81,7 +79,6 @@
 
                 const respostasBrapi = await Promise.all(promessasBrapi);
                 
-                // Consolida os resultados em uma lista só
                 let b3Results = [];
                 respostasBrapi.forEach(resposta => {
                     if (resposta.results && resposta.results.length > 0) {
@@ -89,19 +86,20 @@
                     }
                 });
 
+                // 2. Coleta Macro e Moedas via TwelveData (Adicionado o par USD/BRL)
                 let g = {};
                 try {
-                    const gRes = await fetch(`https://api.twelvedata.com/quote?symbol=DXY,SPX,DJI&apikey=${TWELVE_KEY}`);
+                    const gRes = await fetch(`https://api.twelvedata.com/quote?symbol=DXY,SPX,USD/BRL&apikey=${TWELVE_KEY}`);
                     g = await gRes.json();
                 } catch(err) {
                     console.log("Erro ao buscar dados globais TwelveData.");
                 }
 
-                if (b3Results.length > 0) {
+                if (b3Results.length > 0 || Object.keys(g).length > 0) {
                     analyze(b3Results, g);
                     document.getElementById('debug').innerText = "Sincronizado: " + new Date().toLocaleTimeString();
                 } else {
-                    document.getElementById('debug').innerText = "Erro: Brapi não retornou dados nesta rodada.";
+                    document.getElementById('debug').innerText = "Erro ao acessar os servidores de cotação.";
                 }
                 updateMarketStatus();
             } catch (e) {
@@ -110,19 +108,22 @@
         }
 
         function analyze(b3, g) {
-            const indFull = b3.find(a => a.symbol === 'IBOV') || {};
-            const dolFull = b3.find(a => a.symbol === 'USDBRL') || {};
-
+            // Extração B3 (Índice através do ETF BOVA11)
+            const indFull = b3.find(a => a.symbol === 'BOVA11') || {};
             const winPrice = indFull.regularMarketPrice || 0;
-            const wdoPrice = dolFull.regularMarketPrice || 0;
             const winRange = (indFull.regularMarketDayHigh || 0) - (indFull.regularMarketDayLow || 0);
-            const wdoRange = (dolFull.regularMarketDayHigh || 0) - (dolFull.regularMarketDayLow || 0);
             const winVol = indFull.regularMarketChangePercent || 0;
-            const wdoVol = dolFull.regularMarketChangePercent || 0;
 
-            document.getElementById('win-price').innerText = winPrice > 0 ? winPrice.toLocaleString('pt-BR') : '---';
+            // Extração TwelveData (Dólar Oficial e Macro)
+            const usdData = g['USD/BRL'] || {};
+            const wdoPrice = parseFloat(usdData.close || 0);
+            const wdoRange = parseFloat(usdData.high || 0) - parseFloat(usdData.low || 0);
+            const wdoVol = parseFloat(usdData.percent_change || 0);
+
+            // Atualiza Painel de Preços
+            document.getElementById('win-price').innerText = winPrice > 0 ? 'R$ ' + winPrice.toFixed(2) : '---';
             document.getElementById('wdo-price').innerText = wdoPrice > 0 ? 'R$ ' + wdoPrice.toFixed(4) : '---';
-            document.getElementById('win-range').innerText = `Range: ${winRange > 0 ? winRange.toFixed(0) : '--'} pts | Vol: ${Math.abs(winVol).toFixed(2)}%`;
+            document.getElementById('win-range').innerText = `Range: ${winRange > 0 ? winRange.toFixed(2) : '--'} pts | Vol: ${Math.abs(winVol).toFixed(2)}%`;
             document.getElementById('wdo-range').innerText = `Range: ${wdoRange > 0 ? wdoRange.toFixed(4) : '--'} pts | Vol: ${Math.abs(wdoVol).toFixed(2)}%`;
 
             // Lógica de Veredito Seguro
@@ -130,6 +131,7 @@
             const dxyVar = parseFloat(g['DXY']?.percent_change || 0);
             const spxVar = parseFloat(g['SPX']?.percent_change || 0);
 
+            // Pesos do motor
             if (winVol > 0) score += 20; else if (winVol < 0) score -= 20;
             if (wdoVol < 0) score += 20; else if (wdoVol > 0) score -= 20;
             if (spxVar > 0) score += 30; else if (spxVar < 0) score -= 30;
@@ -146,7 +148,7 @@
                 verdict.innerText = "COMPRA (WIN) / VENDA (WDO)";
                 verdict.className = "verdict up";
                 fill.style.background = "var(--up)";
-                probText.innerText = `Probabilidade: ${absScore}% | Tendência: ALTA (Confirmada no Cheio)`;
+                probText.innerText = `Probabilidade: ${absScore}% | Tendência: ALTA (Suporte Macro)`;
             } else if (score < -20) {
                 verdict.innerText = "VENDA (WIN) / COMPRA (WDO)";
                 verdict.className = "verdict down";
@@ -156,13 +158,13 @@
                 verdict.innerText = "AGUARDAR / NEUTRO";
                 verdict.className = "verdict";
                 fill.style.background = "var(--warn)";
-                probText.innerText = `Mercado sem direção clara no momento.`;
+                probText.innerText = `Mercado sem direção macroeconômica clara.`;
             }
 
-            // Lista de Stocks com Safety Check
+            // Lista de Stocks (Filtrando para não mostrar o BOVA11 na lista de ações)
             const stockList = document.getElementById('stock-list');
             stockList.innerHTML = '';
-            b3.filter(a => STOCKS.includes(a.symbol)).forEach(s => {
+            b3.filter(a => a.symbol !== 'BOVA11').forEach(s => {
                 const pct = s.regularMarketChangePercent || 0;
                 const trend = pct >= 0 ? 'UP' : 'DOWN';
                 const p = Math.min(Math.abs(pct * 40), 95).toFixed(0);
