@@ -35,7 +35,7 @@
     </div>
 
     <div class="card master-signal">
-        <div class="label">Veredito Baseado no Fluxo (IND/DOL Cheio)</div>
+        <div class="label">Veredito Baseado no Fluxo (IBOV/DÓLAR Spot)</div>
         <div id="main-verdict" class="verdict">ANALISANDO...</div>
         <div class="prob-bar"><div id="prob-fill" class="prob-fill"></div></div>
         <div id="main-prob" class="stats">Sincronizando dados macro e micro...</div>
@@ -43,12 +43,12 @@
 
     <div class="grid">
         <div class="card">
-            <span class="label">WIN (Mini)</span>
+            <span class="label">IBOV (Sinal p/ WIN)</span>
             <span id="win-price" class="price">---</span>
             <div id="win-range" class="stats">Range: -- | Vol: --</div>
         </div>
         <div class="card">
-            <span class="label">WDO (Mini)</span>
+            <span class="label">DÓLAR (Sinal p/ WDO)</span>
             <span id="wdo-price" class="price">---</span>
             <div id="wdo-range" class="stats">Range: -- | Vol: --</div>
         </div>
@@ -69,15 +69,25 @@
 
         async function engine() {
             try {
-                // 1. Dados B3: Cheio (INDFUT/DOLFUT) + Mini + Blue Chips
-                const b3Res = await fetch(`https://brapi.dev/api/quote/INDFUT,DOLFUT,WINFUT,WDOLFUT,${STOCKS.join(',')}?token=${BRAPI_KEY}`);
+                // Modificado para usar IBOV e USDBRL em vez dos códigos futuros que são bloqueados.
+                const b3Res = await fetch(`https://brapi.dev/api/quote/IBOV,USDBRL,${STOCKS.join(',')}?token=${BRAPI_KEY}`);
                 const b3 = await b3Res.json();
 
-                // 2. Dados Globais: DXY, S&P500, Dow Jones
-                const gRes = await fetch(`https://api.twelvedata.com/quote?symbol=DXY,SPX,DJI&apikey=${TWELVE_KEY}`);
-                const g = await gRes.json();
+                let g = {};
+                try {
+                    const gRes = await fetch(`https://api.twelvedata.com/quote?symbol=DXY,SPX,DJI&apikey=${TWELVE_KEY}`);
+                    g = await gRes.json();
+                } catch(err) {
+                    console.log("Erro ao buscar dados globais TwelveData.");
+                }
 
-                analyze(b3.results || [], g);
+                // Só chama a função se houver dados válidos na resposta da B3
+                if (b3.results && b3.results.length > 0) {
+                    analyze(b3.results, g);
+                    document.getElementById('debug').innerText = "Sincronizado: " + new Date().toLocaleTimeString();
+                } else {
+                    document.getElementById('debug').innerText = "Erro na Brapi: " + (b3.message || "Ativos não encontrados.");
+                }
                 updateMarketStatus();
             } catch (e) {
                 document.getElementById('debug').innerText = "Erro na API: Aguardando próxima tentativa...";
@@ -85,35 +95,28 @@
         }
 
         function analyze(b3, g) {
-            // Blindagem contra retornos vazios da API
-            const indFull = b3.find(a => a.symbol === 'INDFUT') || {};
-            const dolFull = b3.find(a => a.symbol === 'DOLFUT') || {};
-            const winMini = b3.find(a => a.symbol === 'WINFUT') || {};
-            const wdoMini = b3.find(a => a.symbol === 'WDOLFUT') || {};
+            const indFull = b3.find(a => a.symbol === 'IBOV') || {};
+            const dolFull = b3.find(a => a.symbol === 'USDBRL') || {};
 
-            // Extração segura de variáveis B3
-            const winPrice = winMini.regularMarketPrice || 0;
-            const wdoPrice = wdoMini.regularMarketPrice || 0;
-            const winRange = (winMini.regularMarketDayHigh || 0) - (winMini.regularMarketDayLow || 0);
-            const wdoRange = (wdoMini.regularMarketDayHigh || 0) - (wdoMini.regularMarketDayLow || 0);
-            const winVol = Math.abs(winMini.regularMarketChangePercent || 0);
-            const wdoVol = Math.abs(wdoMini.regularMarketChangePercent || 0);
+            const winPrice = indFull.regularMarketPrice || 0;
+            const wdoPrice = dolFull.regularMarketPrice || 0;
+            const winRange = (indFull.regularMarketDayHigh || 0) - (indFull.regularMarketDayLow || 0);
+            const wdoRange = (dolFull.regularMarketDayHigh || 0) - (dolFull.regularMarketDayLow || 0);
+            const winVol = indFull.regularMarketChangePercent || 0;
+            const wdoVol = dolFull.regularMarketChangePercent || 0;
 
-            // Atualiza Preços Execução
-            document.getElementById('win-price').innerText = winPrice > 0 ? winPrice.toLocaleString() : '---';
-            document.getElementById('wdo-price').innerText = wdoPrice > 0 ? wdoPrice.toFixed(2) : '---';
-            document.getElementById('win-range').innerText = `Range: ${winRange > 0 ? winRange : '--'} pts | Vol: ${winVol.toFixed(2)}%`;
-            document.getElementById('wdo-range').innerText = `Range: ${wdoRange > 0 ? wdoRange.toFixed(2) : '--'} pts | Vol: ${wdoVol.toFixed(2)}%`;
+            document.getElementById('win-price').innerText = winPrice > 0 ? winPrice.toLocaleString('pt-BR') : '---';
+            document.getElementById('wdo-price').innerText = wdoPrice > 0 ? 'R$ ' + wdoPrice.toFixed(4) : '---';
+            document.getElementById('win-range').innerText = `Range: ${winRange > 0 ? winRange.toFixed(0) : '--'} pts | Vol: ${Math.abs(winVol).toFixed(2)}%`;
+            document.getElementById('wdo-range').innerText = `Range: ${wdoRange > 0 ? wdoRange.toFixed(4) : '--'} pts | Vol: ${Math.abs(wdoVol).toFixed(2)}%`;
 
             // Lógica de Veredito Seguro
             let score = 0;
-            const indVar = indFull.regularMarketChangePercent || 0;
-            const dolVar = dolFull.regularMarketChangePercent || 0;
             const dxyVar = parseFloat(g['DXY']?.percent_change || 0);
             const spxVar = parseFloat(g['SPX']?.percent_change || 0);
 
-            if (indVar > 0) score += 20; else if (indVar < 0) score -= 20;
-            if (dolVar < 0) score += 20; else if (dolVar > 0) score -= 20;
+            if (winVol > 0) score += 20; else if (winVol < 0) score -= 20;
+            if (wdoVol < 0) score += 20; else if (wdoVol > 0) score -= 20;
             if (spxVar > 0) score += 30; else if (spxVar < 0) score -= 30;
             if (dxyVar < 0) score += 30; else if (dxyVar > 0) score -= 30;
 
@@ -167,10 +170,9 @@
             } else {
                 status.innerText = "B3 FECHADA"; status.className = "mkt-badge closed";
             }
-            document.getElementById('debug').innerText = "Sincronizado: " + now.toLocaleTimeString();
         }
 
-        setInterval(engine, 60000); // 1 min para preservar limite das chaves
+        setInterval(engine, 60000); 
         engine();
     </script>
 </body>
