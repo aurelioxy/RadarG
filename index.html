@@ -41,7 +41,7 @@
     <div class="card master-signal">
         <div class="label">Veredito Macro de Confluência</div>
         <div id="main-verdict" class="verdict">SINCRO...</div>
-        <div id="main-prob" class="stats">Cruzando Cesta de Minério + AUD/USD + Macro...</div>
+        <div id="main-prob" class="stats">Análise: S&P, Nasdaq, VIX e Commodities...</div>
     </div>
 
     <div class="card">
@@ -51,8 +51,8 @@
                 <span class="news-tag">CONTEXTO MACRO</span>
                 <span class="metrics">Impacto: ⚡⚡ | Prob: 80%</span>
             </div>
-            <b>Foco total na abertura dos DIs e força do Minério.</b>
-            <span class="brain-comment">WIN Neutro | WDO Neutro | Status: [AGUARDANDO ABERTURA]</span>
+            <b>Filtro Nasdaq inserido para medir apetite ao risco.</b>
+            <span class="brain-comment">Aguardando dados institucionais | Status: [CALIBRADO]</span>
         </div>
     </div>
 
@@ -69,36 +69,38 @@
     </div>
 
     <div class="card">
-        <span class="label" style="color: var(--blue);">Fluxo de Notícias B3 & Macro (InfoMoney)</span>
+        <span class="label" style="color: var(--blue);">Fluxo de Notícias B3 (InfoMoney)</span>
         <div class="widget-container" style="overflow-y: auto;" id="br-news-feed">
             <span class="stats">Carregando manchetes...</span>
         </div>
     </div>
 
     <div class="grid">
-        <div class="card">
-            <span class="label">WIN (Est. Pontos)</span>
-            <span id="win-price" class="price">---</span>
-            <div id="win-range" class="stats">--</div>
-        </div>
-        <div class="card">
-            <span class="label">WDO (Est. Pontos)</span>
-            <span id="wdo-price" class="price">---</span>
-            <div id="wdo-range" class="stats">--</div>
-        </div>
+        <div class="card"><span class="label">WIN (Est. Pontos)</span><span id="win-price" class="price">---</span><div id="win-range" class="stats">--</div></div>
+        <div class="card"><span class="label">WDO (Est. Pontos)</span><span id="wdo-price" class="price">---</span><div id="wdo-range" class="stats">--</div></div>
     </div>
 
-    <div class="card" style="padding: 5px 12px; height: 50px;">
-        <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-single-quote.js" async>
-            { "symbol": "SGX:FEF1!", "width": "100%", "colorTheme": "dark", "isTransparent": true, "locale": "br" }
-            </script>
+    <div class="grid">
+        <div class="card" style="padding: 5px 12px; height: 50px; display: flex; align-items: center;">
+            <div class="tradingview-widget-container" style="width: 100%;">
+                <div class="tradingview-widget-container__widget"></div>
+                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-single-quote.js" async>
+                { "symbol": "SGX:FEF1!", "width": "100%", "colorTheme": "dark", "isTransparent": true, "locale": "br" }
+                </script>
+            </div>
+        </div>
+        <div class="card" style="padding: 5px 12px; height: 50px; display: flex; align-items: center;">
+            <div class="tradingview-widget-container" style="width: 100%;">
+                <div class="tradingview-widget-container__widget"></div>
+                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-single-quote.js" async>
+                { "symbol": "TVC:US10Y", "width": "100%", "colorTheme": "dark", "isTransparent": true, "locale": "br" }
+                </script>
+            </div>
         </div>
     </div>
 
     <div class="card">
-        <div class="label">Radar de Sentimento Institucional</div>
+        <div class="label">Radar de Risco Institucional</div>
         <div id="stock-list"></div>
     </div>
 
@@ -116,24 +118,15 @@
                 const res = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://www.infomoney.com.br/mercados/feed/');
                 const data = await res.json();
                 const feedDiv = document.getElementById('br-news-feed');
-                
                 if (data && data.items) {
                     feedDiv.innerHTML = '';
-                    // Carrega as 7 últimas manchetes do InfoMoney
                     data.items.slice(0, 7).forEach(item => {
                         const dateObj = new Date(item.pubDate);
                         const timeStr = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                        feedDiv.innerHTML += `
-                            <div class="br-news-item">
-                                <span class="br-news-time">${timeStr}</span>
-                                <a href="${item.link}" target="_blank" class="br-news-title">${item.title}</a>
-                            </div>
-                        `;
+                        feedDiv.innerHTML += `<div class="br-news-item"><span class="br-news-time">${timeStr}</span><a href="${item.link}" target="_blank" class="br-news-title">${item.title}</a></div>`;
                     });
                 }
-            } catch (error) {
-                document.getElementById('br-news-feed').innerHTML = '<span class="stats">Erro ao carregar notícias...</span>';
-            }
+            } catch (error) { document.getElementById('br-news-feed').innerHTML = '<span class="stats">Erro ao carregar notícias...</span>'; }
         }
 
         async function engine() {
@@ -144,7 +137,8 @@
 
                 let g = {};
                 try {
-                    g = await fetch(`https://api.twelvedata.com/quote?symbol=DXY,SPX,USD/BRL,BRENT,AUD/USD&apikey=${TWELVE_KEY}`).then(r => r.json());
+                    // TROCA: Dow Jones (DJI) ignorado. Nasdaq (IXIC) incluído para Sentimento.
+                    g = await fetch(`https://api.twelvedata.com/quote?symbol=DXY,SPX,USD/BRL,BRENT,AUD/USD,VIX,IXIC&apikey=${TWELVE_KEY}`).then(r => r.json());
                 } catch(e){}
 
                 analyze(b3, g);
@@ -167,16 +161,13 @@
             const brentV = parseFloat(g['BRENT']?.percent_change || 0);
             const audV = parseFloat(g['AUD/USD']?.percent_change || 0);
             const spxV = parseFloat(g['SPX']?.percent_change || 0);
+            const nasdaqV = parseFloat(g['IXIC']?.percent_change || 0);
             const dxyV = parseFloat(g['DXY']?.percent_change || 0);
+            const vixV = parseFloat(g['VIX']?.percent_change || 0);
 
             let oreScore = 0;
             let oreCount = 0;
-            b3.forEach(s => {
-                if(ORE_BASKET.includes(s.symbol)) {
-                    oreScore += s.regularMarketChangePercent || 0;
-                    oreCount++;
-                }
-            });
+            b3.forEach(s => { if(ORE_BASKET.includes(s.symbol)) { oreScore += s.regularMarketChangePercent || 0; oreCount++; } });
             const oreAvg = oreCount > 0 ? oreScore / oreCount : 0;
 
             document.getElementById('win-price').innerText = winP ? (winP * 1000).toLocaleString('pt-BR') : '---';
@@ -184,17 +175,16 @@
             document.getElementById('win-range').innerText = `Range Est: ${winRange.toFixed(0)} pts | Vol: ${Math.abs(winV).toFixed(2)}%`;
             document.getElementById('wdo-range').innerText = `Range Est: ${wdoRange.toFixed(1)} pts | Vol: ${Math.abs(wdoV).toFixed(2)}%`;
 
+            // LÓGICA CALIBRADA (PESO EXTRA NO NASDAQ PARA SENTIMENTO)
             let finalScore = 0;
-            
-            if (winV > 0.2) finalScore += 15; else if (winV < -0.2) finalScore -= 15;
-            if (wdoV < -0.1) finalScore += 15; else if (wdoV > 0.1) finalScore -= 15;
-            if (spxV > 0.05) finalScore += 25; else if (spxV < -0.05) finalScore -= 25;
-            if (dxyV < -0.02) finalScore += 15; else if (dxyV > 0.02) finalScore -= 15;
-            
-            if (brentV > 0.5) finalScore += 15; else if (brentV < -0.5) finalScore -= 15;
-            
-            if (oreAvg > 0.3 && audV > 0) finalScore += 15; 
-            else if (oreAvg < -0.3 && audV < 0) finalScore -= 15;
+            if (winV > 0.2) finalScore += 10; else if (winV < -0.2) finalScore -= 10;
+            if (wdoV < -0.1) finalScore += 10; else if (wdoV > 0.1) finalScore -= 10;
+            if (spxV > 0.05) finalScore += 20; else if (spxV < -0.05) finalScore -= 20;
+            if (nasdaqV > 0.05) finalScore += 15; else if (nasdaqV < -0.05) finalScore -= 15;
+            if (dxyV < -0.02) finalScore += 10; else if (dxyV > 0.02) finalScore -= 10;
+            if (brentV > 0.5) finalScore += 10; else if (brentV < -0.5) finalScore -= 10;
+            if (oreAvg > 0.3 && audV > 0) finalScore += 10; else if (oreAvg < -0.3 && audV < 0) finalScore -= 10;
+            if (vixV > 5) finalScore -= 25; else if (vixV > 2) finalScore -= 10;
 
             const v = document.getElementById('main-verdict');
             if (finalScore >= 40) { v.innerText = "VIÉS DE ALTA (WIN)"; v.className = "verdict up"; }
@@ -203,12 +193,12 @@
 
             const list = document.getElementById('stock-list');
             list.innerHTML = `
+                <div class="stock-item"><span><b style="color:var(--blue);">NASDAQ (RISK-ON)</b></span><span class="${nasdaqV >= 0 ? 'up' : 'down'}">${nasdaqV.toFixed(2)}%</span></div>
+                <div class="stock-item"><span><b style="color:var(--warn);">VIX (MEDO)</b></span><span class="${vixV <= 0 ? 'up' : 'down'}">${vixV.toFixed(2)}%</span></div>
                 <div class="stock-item"><span><b>PETRÓLEO BRENT</b></span><span class="${brentV >= 0 ? 'up' : 'down'}">${brentV.toFixed(2)}%</span></div>
                 <div class="stock-item"><span><b>CESTA MINÉRIO (MÉDIA)</b></span><span class="${oreAvg >= 0 ? 'up' : 'down'}">${oreAvg.toFixed(2)}%</span></div>
-                <div class="stock-item"><span><b>AUD/USD (PROXY MINÉRIO)</b></span><span class="${audV >= 0 ? 'up' : 'down'}">${audV.toFixed(2)}%</span></div>
             `;
-            
-            b3.filter(a => ['PETR4', 'VALE3', 'ITUB4', 'BBAS3'].includes(a.symbol)).forEach(s => {
+            b3.filter(a => ['PETR4', 'VALE3', 'ITUB4'].includes(a.symbol)).forEach(s => {
                 const p = s.regularMarketChangePercent || 0;
                 list.innerHTML += `<div class="stock-item"><span><b>${s.symbol}</b></span><span class="${p >= 0 ? 'up' : 'down'}">${p.toFixed(2)}%</span></div>`;
             });
@@ -223,7 +213,6 @@
 
         fetchLocalNews();
         setInterval(fetchLocalNews, 300000);
-
         setInterval(engine, 60000); 
         engine();
     </script>
