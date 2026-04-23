@@ -69,9 +69,25 @@
 
         async function engine() {
             try {
-                // Modificado para usar IBOV e USDBRL em vez dos códigos futuros que são bloqueados.
-                const b3Res = await fetch(`https://brapi.dev/api/quote/IBOV,USDBRL,${STOCKS.join(',')}?token=${BRAPI_KEY}`);
-                const b3 = await b3Res.json();
+                // Cria a lista com todos os ativos
+                const ativos = ['IBOV', 'USDBRL', ...STOCKS];
+                
+                // Dispara os pedidos separadamente para burlar o bloqueio do plano gratuito
+                const promessasBrapi = ativos.map(ativo => 
+                    fetch(`https://brapi.dev/api/quote/${ativo}?token=${BRAPI_KEY}`)
+                        .then(res => res.json())
+                        .catch(err => ({ results: [] }))
+                );
+
+                const respostasBrapi = await Promise.all(promessasBrapi);
+                
+                // Consolida os resultados em uma lista só
+                let b3Results = [];
+                respostasBrapi.forEach(resposta => {
+                    if (resposta.results && resposta.results.length > 0) {
+                        b3Results.push(resposta.results[0]);
+                    }
+                });
 
                 let g = {};
                 try {
@@ -81,12 +97,11 @@
                     console.log("Erro ao buscar dados globais TwelveData.");
                 }
 
-                // Só chama a função se houver dados válidos na resposta da B3
-                if (b3.results && b3.results.length > 0) {
-                    analyze(b3.results, g);
+                if (b3Results.length > 0) {
+                    analyze(b3Results, g);
                     document.getElementById('debug').innerText = "Sincronizado: " + new Date().toLocaleTimeString();
                 } else {
-                    document.getElementById('debug').innerText = "Erro na Brapi: " + (b3.message || "Ativos não encontrados.");
+                    document.getElementById('debug').innerText = "Erro: Brapi não retornou dados nesta rodada.";
                 }
                 updateMarketStatus();
             } catch (e) {
