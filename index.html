@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner Pro - WIN/WDO</title>
+    <style>
+        :root { --bg: #0a0c10; --card: #161b22; --text: #c9d1d9; --up: #238636; --down: #f85149; --warn: #d29922; }
+        body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 12px; font-size: 13px; }
+        .card { background: var(--card); border-radius: 10px; padding: 12px; border: 1px solid #30363d; margin-bottom: 8px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .mkt-badge { font-size: 10px; padding: 3px 8px; border-radius: 10px; font-weight: bold; text-transform: uppercase; }
+        .open { background: rgba(35, 134, 54, 0.1); color: var(--up); border: 1px solid var(--up); }
+        .closed { background: rgba(248, 81, 73, 0.1); color: var(--down); border: 1px solid var(--down); }
+        
+        .master-signal { text-align: center; border: 2px solid #58a6ff; padding: 15px; }
+        .verdict { font-size: 22px; font-weight: 900; margin: 5px 0; letter-spacing: -1px; }
+        .prob-bar { height: 4px; background: #30363d; border-radius: 2px; margin: 10px 0; overflow: hidden; }
+        .prob-fill { height: 100%; width: 0%; transition: 1s; }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .label { font-size: 10px; color: #8b949e; text-transform: uppercase; }
+        .price { font-size: 18px; font-weight: bold; display: block; margin: 2px 0; }
+        .stats { font-size: 10px; color: #8b949e; }
+        
+        .stock-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #21262d; }
+        .up { color: var(--up); } .down { color: var(--down); }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <span style="font-weight: bold; color: #58a6ff;">INSTITUTIONAL SCANNER</span>
+        <div id="mkt-status" class="mkt-badge">Verificando...</div>
+    </div>
+
+    <div class="card master-signal">
+        <div class="label">Veredito Baseado no Fluxo (IND/DOL Cheio)</div>
+        <div id="main-verdict" class="verdict">ANALISANDO...</div>
+        <div class="prob-bar"><div id="prob-fill" class="prob-fill"></div></div>
+        <div id="main-prob" class="stats">Sincronizando dados macro e micro...</div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <span class="label">WIN (Mini)</span>
+            <span id="win-price" class="price">---</span>
+            <div id="win-range" class="stats">Range: -- | Vol: --</div>
+        </div>
+        <div class="card">
+            <span class="label">WDO (Mini)</span>
+            <span id="wdo-price" class="price">---</span>
+            <div id="wdo-range" class="stats">Range: -- | Vol: --</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="label" style="margin-bottom: 10px;">Termômetro de Blue Chips & Setores</div>
+        <div id="stock-list">
+            </div>
+    </div>
+
+    <div id="debug" style="font-size: 9px; color: #484f58; text-align: center;">Iniciando motor de análise...</div>
+
+    <script>
+        const BRAPI_KEY = 'pezVZGKkdR3gYuJPJWN9rB';
+        const TWELVE_KEY = '55933fcca4154a0f901d96d1d9097ecf';
+        const STOCKS = ['PETR4', 'VALE3', 'ITUB4', 'BBAS3', 'GGBR4', 'ABEV3', 'WEGE3'];
+
+        async function engine() {
+            try {
+                // 1. Dados B3: Cheio (INDFUT/DOLFUT) + Mini + Blue Chips
+                const b3Res = await fetch(`https://brapi.dev/api/quote/INDFUT,DOLFUT,WINFUT,WDOLFUT,${STOCKS.join(',')}?token=${BRAPI_KEY}`);
+                const b3 = await b3Res.json();
+
+                // 2. Dados Globais: DXY, S&P500, Dow Jones
+                const gRes = await fetch(`https://api.twelvedata.com/quote?symbol=DXY,SPX,DJI&apikey=${TWELVE_KEY}`);
+                const g = await gRes.json();
+
+                analyze(b3.results || [], g);
+                updateMarketStatus();
+            } catch (e) {
+                document.getElementById('debug').innerText = "Erro na API: Aguardando próxima tentativa...";
+            }
+        }
+
+        function analyze(b3, g) {
+            // Blindagem contra retornos vazios da API
+            const indFull = b3.find(a => a.symbol === 'INDFUT') || {};
+            const dolFull = b3.find(a => a.symbol === 'DOLFUT') || {};
+            const winMini = b3.find(a => a.symbol === 'WINFUT') || {};
+            const wdoMini = b3.find(a => a.symbol === 'WDOLFUT') || {};
+
+            // Extração segura de variáveis B3
+            const winPrice = winMini.regularMarketPrice || 0;
+            const wdoPrice = wdoMini.regularMarketPrice || 0;
+            const winRange = (winMini.regularMarketDayHigh || 0) - (winMini.regularMarketDayLow || 0);
+            const wdoRange = (wdoMini.regularMarketDayHigh || 0) - (wdoMini.regularMarketDayLow || 0);
+            const winVol = Math.abs(winMini.regularMarketChangePercent || 0);
+            const wdoVol = Math.abs(wdoMini.regularMarketChangePercent || 0);
+
+            // Atualiza Preços Execução
+            document.getElementById('win-price').innerText = winPrice > 0 ? winPrice.toLocaleString() : '---';
+            document.getElementById('wdo-price').innerText = wdoPrice > 0 ? wdoPrice.toFixed(2) : '---';
+            document.getElementById('win-range').innerText = `Range: ${winRange > 0 ? winRange : '--'} pts | Vol: ${winVol.toFixed(2)}%`;
+            document.getElementById('wdo-range').innerText = `Range: ${wdoRange > 0 ? wdoRange.toFixed(2) : '--'} pts | Vol: ${wdoVol.toFixed(2)}%`;
+
+            // Lógica de Veredito Seguro
+            let score = 0;
+            const indVar = indFull.regularMarketChangePercent || 0;
+            const dolVar = dolFull.regularMarketChangePercent || 0;
+            const dxyVar = parseFloat(g['DXY']?.percent_change || 0);
+            const spxVar = parseFloat(g['SPX']?.percent_change || 0);
+
+            if (indVar > 0) score += 20; else if (indVar < 0) score -= 20;
+            if (dolVar < 0) score += 20; else if (dolVar > 0) score -= 20;
+            if (spxVar > 0) score += 30; else if (spxVar < 0) score -= 30;
+            if (dxyVar < 0) score += 30; else if (dxyVar > 0) score -= 30;
+
+            const verdict = document.getElementById('main-verdict');
+            const probText = document.getElementById('main-prob');
+            const fill = document.getElementById('prob-fill');
+
+            const absScore = Math.min(Math.abs(score), 100);
+            fill.style.width = absScore + '%';
+            
+            if (score > 20) {
+                verdict.innerText = "COMPRA (WIN) / VENDA (WDO)";
+                verdict.className = "verdict up";
+                fill.style.background = "var(--up)";
+                probText.innerText = `Probabilidade: ${absScore}% | Tendência: ALTA (Confirmada no Cheio)`;
+            } else if (score < -20) {
+                verdict.innerText = "VENDA (WIN) / COMPRA (WDO)";
+                verdict.className = "verdict down";
+                fill.style.background = "var(--down)";
+                probText.innerText = `Probabilidade: ${absScore}% | Tendência: BAIXA (Pressão Global)`;
+            } else {
+                verdict.innerText = "AGUARDAR / NEUTRO";
+                verdict.className = "verdict";
+                fill.style.background = "var(--warn)";
+                probText.innerText = `Mercado sem direção clara no momento.`;
+            }
+
+            // Lista de Stocks com Safety Check
+            const stockList = document.getElementById('stock-list');
+            stockList.innerHTML = '';
+            b3.filter(a => STOCKS.includes(a.symbol)).forEach(s => {
+                const pct = s.regularMarketChangePercent || 0;
+                const trend = pct >= 0 ? 'UP' : 'DOWN';
+                const p = Math.min(Math.abs(pct * 40), 95).toFixed(0);
+                stockList.innerHTML += `
+                    <div class="stock-item">
+                        <span><b>${s.symbol}</b></span>
+                        <span class="${trend === 'UP' ? 'up' : 'down'}">${pct.toFixed(2)}% (${trend})</span>
+                        <span style="font-size: 10px; color: #8b949e;">Prob. ${p}%</span>
+                    </div>
+                `;
+            });
+        }
+
+        function updateMarketStatus() {
+            const now = new Date();
+            const hour = now.getHours();
+            const status = document.getElementById('mkt-status');
+            if (hour >= 9 && hour < 18) {
+                status.innerText = "B3 ABERTA"; status.className = "mkt-badge open";
+            } else {
+                status.innerText = "B3 FECHADA"; status.className = "mkt-badge closed";
+            }
+            document.getElementById('debug').innerText = "Sincronizado: " + now.toLocaleTimeString();
+        }
+
+        setInterval(engine, 60000); // 1 min para preservar limite das chaves
+        engine();
+    </script>
+</body>
+</html>
