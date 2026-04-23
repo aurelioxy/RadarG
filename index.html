@@ -1,220 +1,404 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scanner Pro - WIN/WDO</title>
-    <style>
-        :root { --bg: #0a0c10; --card: #161b22; --text: #c9d1d9; --up: #238636; --down: #f85149; --warn: #d29922; --blue: #58a6ff; }
-        body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 12px; font-size: 13px; }
-        .card { background: var(--card); border-radius: 10px; padding: 12px; border: 1px solid #30363d; margin-bottom: 8px; overflow: hidden; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .mkt-badge { font-size: 10px; padding: 3px 8px; border-radius: 10px; font-weight: bold; text-transform: uppercase; }
-        .open { background: rgba(35, 134, 54, 0.1); color: var(--up); border: 1px solid var(--up); }
-        .closed { background: rgba(248, 81, 73, 0.1); color: var(--down); border: 1px solid var(--down); }
-        .master-signal { text-align: center; border: 2px solid var(--blue); padding: 15px; }
-        .verdict { font-size: 22px; font-weight: 900; margin: 5px 0; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .label { font-size: 10px; color: #8b949e; text-transform: uppercase; font-weight: bold; margin-bottom: 5px; display: block; }
-        .price { font-size: 18px; font-weight: bold; display: block; margin: 2px 0; }
-        .stats { font-size: 10px; color: #8b949e; }
-        .stock-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #21262d; }
-        .up { color: var(--up); } .down { color: var(--down); }
-        .widget-container { height: 180px; margin-top: 5px; }
-        
-        .news-tag { font-size: 9px; padding: 2px 5px; border-radius: 4px; background: #30363d; font-weight: bold; }
-        .brain-comment { font-size: 11px; color: #8b949e; font-style: italic; display: block; margin-top: 4px; }
-        .metrics { font-size: 10px; color: var(--blue); font-weight: bold; }
-        
-        .br-news-item { margin-bottom: 10px; border-bottom: 1px solid #30363d; padding-bottom: 8px; }
-        .br-news-time { color: var(--warn); font-size: 10px; font-weight: bold; margin-right: 5px; }
-        .br-news-title { color: var(--text); text-decoration: none; font-size: 12px; font-weight: bold; line-height: 1.3; display: inline-block; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RADAR C - Master Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#05080f;--panel:#0d1320;--card:#111a28;--b1:#1c2a3a;--b2:#263648;
+  --t1:#f0f6ff;--t2:#c8daf0;--t3:#90aac8;--label:#00c8e8;
+  --accent:#00c8e8;--ok:#00e070;--danger:#ff2244;--warn:#ffaa00;
+  --risk-low-bg:rgba(0,224,112,.05);--risk-low-bd:rgba(0,224,112,.4);
+  --risk-med-bg:rgba(255,170,0,.05);--risk-med-bd:rgba(255,170,0,.4);
+  --risk-high-bg:rgba(255,100,0,.06);--risk-high-bd:rgba(255,100,0,.45);
+  --risk-ext-bg:rgba(255,34,68,.07);--risk-ext-bd:rgba(255,34,68,.5);
+}
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+body { background:var(--bg); color:var(--t1); font-family:'JetBrains Mono',monospace; min-height:100vh; overflow-x:hidden; overscroll-behavior-y: contain; }
+body::before { content:''; position:fixed; inset:0; background-image:linear-gradient(rgba(0,200,232,.01) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,232,.01) 1px,transparent 1px); background-size:44px 44px; pointer-events:none; z-index:0; }
+
+.app { position:relative; z-index:1; max-width:640px; margin:0 auto; padding:16px 14px 48px; }
+
+/* HEADER */
+.hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; padding-bottom:14px; border-bottom:2px solid var(--b1); gap:12px; }
+.logo-wrap { flex:1; }
+.logo { font-family:'Audiowide',sans-serif; font-size:32px; letter-spacing:6px; color:var(--accent); text-transform:uppercase; line-height:1; text-shadow:0 0 20px rgba(0,200,232,.25); }
+.logo-sub { font-size:11px; letter-spacing:3px; color:var(--t3); margin-top:6px; font-weight:700; }
+.mkt-badge { font-size:11px; padding:6px 12px; border-radius:8px; font-weight:bold; text-transform:uppercase; border:1px solid; }
+.b-open { background:var(--risk-low-bg); color:var(--ok); border-color:var(--risk-low-bd); }
+.b-closed { background:var(--risk-ext-bg); color:var(--danger); border-color:var(--risk-ext-bd); }
+
+/* EXECUTION CARDS (FULL WIDTH) */
+.exec-card { background:var(--card); border:1px solid var(--b1); border-radius:12px; padding:16px; margin-bottom:12px; position:relative; overflow:hidden; }
+.exec-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; }
+.exec-card.buy::before { background:var(--ok); }
+.exec-card.sell::before { background:var(--danger); }
+.exec-card.neut::before { background:var(--b2); }
+
+.ex-top { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:12px; border-bottom:1px solid var(--b1); padding-bottom:12px; }
+.ex-asset { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; letter-spacing:2px; line-height:1; }
+.ex-price { font-size:24px; font-weight:700; color:var(--t1); }
+.ex-stats { display:flex; gap:16px; font-size:12px; color:var(--t3); font-weight:700; }
+.ex-stat-val { color:var(--t2); font-size:14px; }
+
+.ex-action { margin-top:12px; background:var(--panel); padding:12px; border-radius:8px; border:1px dashed var(--b2); display:flex; flex-direction:column; gap:8px; }
+.ex-signal { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; letter-spacing:1px; }
+.ex-signal.up { color:var(--ok); } .ex-signal.down { color:var(--danger); } .ex-signal.nt { color:var(--warn); }
+.ex-mme { font-size:13px; font-weight:700; letter-spacing:1px; color:var(--t2); }
+.ex-metrics { display:flex; justify-content:space-between; font-size:12px; font-weight:bold; margin-top:4px; }
+.prob { color:var(--accent); }
+
+/* CONFLUENCE HEATMAP */
+.sec-title { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; letter-spacing:2px; color:var(--label); margin:20px 0 10px 0; display:flex; align-items:center; gap:8px; }
+.heatmap { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+.hm-pill { background:var(--panel); border:1px solid var(--b1); border-radius:8px; padding:10px 14px; display:flex; flex-direction:column; align-items:center; flex:1; min-width:70px; }
+.hm-lbl { font-size:11px; font-weight:bold; color:var(--t3); margin-bottom:4px; letter-spacing:1px; }
+.hm-val { font-size:14px; font-weight:bold; }
+.c-up { color:var(--ok); } .c-down { color:var(--danger); } .c-nt { color:var(--t2); }
+.hm-pill.p-up { border-color:rgba(0,224,112,.3); background:rgba(0,224,112,.05); }
+.hm-pill.p-down { border-color:rgba(255,34,68,.3); background:rgba(255,34,68,.05); }
+
+/* B3 RADAR (BLUE CHIPS) */
+.b3-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; }
+.b3-card { background:var(--card); border:1px solid var(--b1); border-radius:8px; padding:12px; display:flex; justify-content:space-between; align-items:center; }
+.b3-tkr { font-family:'Syne',sans-serif; font-size:15px; font-weight:800; color:var(--t1); }
+.b3-p { font-size:14px; font-weight:bold; }
+
+/* WIDGET CONTAINERS */
+.widget-box { background:var(--card); border:1px solid var(--b1); border-radius:12px; padding:12px; margin-bottom:12px; overflow:hidden; }
+.br-news-item { margin-bottom:12px; border-bottom:1px solid var(--b1); padding-bottom:10px; }
+.br-news-item:last-child { border-bottom:none; margin-bottom:0; padding-bottom:0; }
+.br-news-time { color:var(--accent); font-size:11px; font-weight:bold; margin-right:8px; }
+.br-news-title { color:var(--t2); text-decoration:none; font-size:13px; font-weight:bold; line-height:1.4; display:inline; }
+
+/* FLASH ANIMATION (Atualização) */
+@keyframes flashUpdate {
+  0% { background-color: rgba(0, 200, 232, 0.4); }
+  100% { background-color: transparent; }
+}
+.flash { animation: flashUpdate 0.6s ease-out; }
+
+/* TOAST (Avisos de Cache/Erro) */
+.toast { position:fixed; bottom:20px; left:14px; right:14px; max-width:500px; margin:0 auto; background:var(--panel); border:2px solid var(--b2); border-radius:10px; padding:12px 16px; font-size:13px; font-weight:bold; text-align:center; transform:translateY(80px); opacity:0; transition:all 0.3s; z-index:999; }
+.toast.show { transform:translateY(0); opacity:1; }
+.toast.ok { border-color:var(--accent); color:var(--accent); }
+.toast.warn { border-color:var(--warn); color:var(--warn); }
+</style>
 </head>
 <body>
+<div class="app">
 
-    <div class="header">
-        <span style="font-weight: bold; color: var(--blue);">INSTITUTIONAL SCANNER</span>
-        <div id="mkt-status" class="mkt-badge">Verificando...</div>
+  <div class="hdr">
+    <div class="logo-wrap">
+      <div class="logo">RADAR C</div>
+      <div class="logo-sub">WIN/WDO INSTITUTIONAL HUD</div>
+    </div>
+    <div id="mkt-status" class="mkt-badge b-closed">VERIFICANDO</div>
+  </div>
+
+  <div class="sec-title">🎯 EXECUÇÃO MME 20</div>
+  <div id="win-card" class="exec-card neut">
+    <div class="ex-top">
+      <div>
+        <div class="ex-asset">WIN</div>
+        <div class="ex-price" id="win-price">---</div>
+      </div>
+      <div>
+        <div class="ex-stats">VOL: <span class="ex-stat-val" id="win-vol">--%</span></div>
+        <div class="ex-stats">RANGE: <span class="ex-stat-val" id="win-rng">-- pts</span></div>
+      </div>
+    </div>
+    <div class="ex-action">
+      <div class="ex-signal nt" id="win-signal">AGUARDANDO DADOS...</div>
+      <div class="ex-mme" id="win-mme">Sincronizando fluxo global</div>
+      <div class="ex-metrics">
+        <span>FORÇA: <span id="win-force">--</span></span>
+        <span class="prob">PROB: <span id="win-prob">--%</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div id="wdo-card" class="exec-card neut">
+    <div class="ex-top">
+      <div>
+        <div class="ex-asset">WDO</div>
+        <div class="ex-price" id="wdo-price">---</div>
+      </div>
+      <div>
+        <div class="ex-stats">VOL: <span class="ex-stat-val" id="wdo-vol">--%</span></div>
+        <div class="ex-stats">RANGE: <span class="ex-stat-val" id="wdo-rng">-- pts</span></div>
+      </div>
+    </div>
+    <div class="ex-action">
+      <div class="ex-signal nt" id="wdo-signal">AGUARDANDO DADOS...</div>
+      <div class="ex-mme" id="wdo-mme">Sincronizando fluxo global</div>
+      <div class="ex-metrics">
+        <span>FORÇA: <span id="wdo-force">--</span></span>
+        <span class="prob">PROB: <span id="wdo-prob">--%</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-title">🌍 TERMÔMETRO GLOBAL</div>
+  <div class="heatmap" id="heatmap">
+    <div class="hm-pill"><div class="hm-lbl">NDX</div><div class="hm-val">--</div></div>
+    <div class="hm-pill"><div class="hm-lbl">SPX</div><div class="hm-val">--</div></div>
+    <div class="hm-pill"><div class="hm-lbl">VIX</div><div class="hm-val">--</div></div>
+    <div class="hm-pill"><div class="hm-lbl">OIL</div><div class="hm-val">--</div></div>
+    <div class="hm-pill"><div class="hm-lbl">MIN</div><div class="hm-val">--</div></div>
+    <div class="hm-pill"><div class="hm-lbl">AUD</div><div class="hm-val">--</div></div>
+  </div>
+
+  <div class="sec-title">🇧🇷 BLUE CHIPS B3</div>
+  <div class="b3-grid" id="b3-grid">
     </div>
 
-    <div class="card master-signal">
-        <div class="label">Veredito Macro de Confluência</div>
-        <div id="main-verdict" class="verdict">SINCRO...</div>
-        <div id="main-prob" class="stats">Análise: S&P, Nasdaq, VIX e Commodities...</div>
+  <div class="sec-title">⏱ AGENDA E FLUXO INFO</div>
+  <div class="widget-box" style="height: 160px; padding:0;">
+    <div class="tradingview-widget-container">
+      <div class="tradingview-widget-container__widget"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
+      { "colorTheme": "dark", "isResponsive": true, "width": "100%", "height": "100%", "importanceFilter": "0,1", "currencyFilter": "BRL,USD", "locale": "br" }
+      </script>
     </div>
+  </div>
 
-    <div class="card">
-        <div class="label" style="color: var(--warn); margin-bottom: 8px;">Cérebro: Contexto & Impacto</div>
-        <div id="news-brain" style="border-left: 3px solid var(--blue); padding-left: 10px; margin-top: 5px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <span class="news-tag">CONTEXTO MACRO</span>
-                <span class="metrics">Impacto: ⚡⚡ | Prob: 80%</span>
-            </div>
-            <b>Filtro Nasdaq inserido para medir apetite ao risco.</b>
-            <span class="brain-comment">Aguardando dados institucionais | Status: [CALIBRADO]</span>
-        </div>
-    </div>
+  <div class="widget-box" id="br-news-feed" style="max-height: 250px; overflow-y: auto;">
+    <span style="font-size:12px; color:var(--t3);">Carregando manchetes (InfoMoney)...</span>
+  </div>
 
-    <div class="card">
-        <span class="label" style="color: var(--warn);">Agenda Econômica (BR/EUA)</span>
-        <div class="widget-container" style="height: 140px;">
-            <div class="tradingview-widget-container">
-                <div class="tradingview-widget-container__widget"></div>
-                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
-                { "colorTheme": "dark", "isResponsive": true, "width": "100%", "height": "100%", "importanceFilter": "0,1", "currencyFilter": "BRL,USD", "locale": "br" }
-                </script>
-            </div>
-        </div>
-    </div>
+</div>
 
-    <div class="card">
-        <span class="label" style="color: var(--blue);">Fluxo de Notícias B3 (InfoMoney)</span>
-        <div class="widget-container" style="overflow-y: auto;" id="br-news-feed">
-            <span class="stats">Carregando manchetes...</span>
-        </div>
-    </div>
+<div class="toast" id="sys-toast"></div>
 
-    <div class="grid">
-        <div class="card"><span class="label">WIN (Est. Pontos)</span><span id="win-price" class="price">---</span><div id="win-range" class="stats">--</div></div>
-        <div class="card"><span class="label">WDO (Est. Pontos)</span><span id="wdo-price" class="price">---</span><div id="wdo-range" class="stats">--</div></div>
-    </div>
+<script>
+// CONFIG E CHAVES
+const BRAPI_KEY = 'pezVZGKkdR3gYuJPJWN9rB';
+const TWELVE_KEY = '55933fcca4154a0f901d96d1d9097ecf';
+const STOCKS = ['BOVA11', 'PETR4', 'VALE3', 'ITUB4', 'BBAS3', 'CMIN3', 'BHPG34', 'RIOT34', 'FSUG34'];
+const ORE_BASKET = ['VALE3', 'CMIN3', 'BHPG34', 'RIOT34', 'FSUG34'];
 
-    <div class="grid">
-        <div class="card" style="padding: 5px 12px; height: 50px; display: flex; align-items: center;">
-            <div class="tradingview-widget-container" style="width: 100%;">
-                <div class="tradingview-widget-container__widget"></div>
-                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-single-quote.js" async>
-                { "symbol": "SGX:FEF1!", "width": "100%", "colorTheme": "dark", "isTransparent": true, "locale": "br" }
-                </script>
-            </div>
-        </div>
-        <div class="card" style="padding: 5px 12px; height: 50px; display: flex; align-items: center;">
-            <div class="tradingview-widget-container" style="width: 100%;">
-                <div class="tradingview-widget-container__widget"></div>
-                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-single-quote.js" async>
-                { "symbol": "TVC:US10Y", "width": "100%", "colorTheme": "dark", "isTransparent": true, "locale": "br" }
-                </script>
-            </div>
-        </div>
-    </div>
+// TELEMETRIA E CACHE
+let lastFetchTime = 0;
+let isFetching = false;
+let touchstartY = 0;
 
-    <div class="card">
-        <div class="label">Radar de Risco Institucional</div>
-        <div id="stock-list"></div>
-    </div>
+function showToast(msg, type='ok') {
+  const el = document.getElementById('sys-toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + type;
+  setTimeout(() => el.className = 'toast', 2500);
+}
 
-    <div id="debug" style="font-size: 9px; color: #484f58; text-align: center; margin-top: 10px;">Aguardando sinal global...</div>
+function flashElements() {
+  const els = document.querySelectorAll('.ex-price, .ex-stat-val, .hm-val, .b3-p');
+  els.forEach(el => {
+    el.classList.remove('flash');
+    void el.offsetWidth; // trigger reflow
+    el.classList.add('flash');
+  });
+}
 
-    <script>
-        const BRAPI_KEY = 'pezVZGKkdR3gYuJPJWN9rB';
-        const TWELVE_KEY = '55933fcca4154a0f901d96d1d9097ecf';
-        
-        const STOCKS = ['BOVA11', 'PETR4', 'VALE3', 'ITUB4', 'BBAS3', 'CMIN3', 'BHPG34', 'RIOT34', 'FSUG34'];
-        const ORE_BASKET = ['VALE3', 'CMIN3', 'BHPG34', 'RIOT34', 'FSUG34'];
+function updateMarketStatus() {
+  const h = new Date().getHours();
+  const s = document.getElementById('mkt-status');
+  if (h >= 9 && h < 18) { s.innerText = "B3 ABERTA"; s.className = "mkt-badge b-open"; }
+  else { s.innerText = "B3 FECHADA"; s.className = "mkt-badge b-closed"; }
+}
 
-        async function fetchLocalNews() {
-            try {
-                const res = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://www.infomoney.com.br/mercados/feed/');
-                const data = await res.json();
-                const feedDiv = document.getElementById('br-news-feed');
-                if (data && data.items) {
-                    feedDiv.innerHTML = '';
-                    data.items.slice(0, 7).forEach(item => {
-                        const dateObj = new Date(item.pubDate);
-                        const timeStr = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                        feedDiv.innerHTML += `<div class="br-news-item"><span class="br-news-time">${timeStr}</span><a href="${item.link}" target="_blank" class="br-news-title">${item.title}</a></div>`;
-                    });
-                }
-            } catch (error) { document.getElementById('br-news-feed').innerHTML = '<span class="stats">Erro ao carregar notícias...</span>'; }
-        }
+async function fetchLocalNews() {
+  try {
+    const res = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://www.infomoney.com.br/mercados/feed/');
+    const data = await res.json();
+    const feedDiv = document.getElementById('br-news-feed');
+    if (data && data.items) {
+      feedDiv.innerHTML = '';
+      data.items.slice(0, 7).forEach(item => {
+        const dateObj = new Date(item.pubDate);
+        const timeStr = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        feedDiv.innerHTML += `
+          <div class="br-news-item">
+            <span class="br-news-time">${timeStr}</span>
+            <a href="${item.link}" target="_blank" class="br-news-title">${item.title}</a>
+          </div>`;
+      });
+    }
+  } catch (error) {}
+}
 
-        async function engine() {
-            try {
-                const pBrapi = STOCKS.map(s => fetch(`https://brapi.dev/api/quote/${s}?token=${BRAPI_KEY}`).then(r => r.json()).catch(() => ({results:[]})));
-                const rBrapi = await Promise.all(pBrapi);
-                let b3 = []; rBrapi.forEach(r => { if(r.results?.[0]) b3.push(r.results[0]); });
+async function engine(manual = false) {
+  // 1. SISTEMA ANTI-BLOQUEIO (COOLDOWN 30s)
+  const now = Date.now();
+  if (manual && (now - lastFetchTime < 30000)) {
+    showToast('Cache Ativo (Aguarde 30s)', 'warn');
+    return;
+  }
+  if (isFetching) return;
+  isFetching = true;
 
-                let g = {};
-                try {
-                    // TROCA: Dow Jones (DJI) ignorado. Nasdaq (IXIC) incluído para Sentimento.
-                    g = await fetch(`https://api.twelvedata.com/quote?symbol=DXY,SPX,USD/BRL,BRENT,AUD/USD,VIX,IXIC&apikey=${TWELVE_KEY}`).then(r => r.json());
-                } catch(e){}
+  try {
+    // 2. ISOLAMENTO DE IGNIÇÃO (Promise.allSettled)
+    const pBrapi = fetch(`https://brapi.dev/api/quote/${STOCKS.join(',')}?token=${BRAPI_KEY}`).then(r => r.json());
+    const pTwelve = fetch(`https://api.twelvedata.com/quote?symbol=DXY,SPX,USD/BRL,BRENT,AUD/USD,VIX,IXIC&apikey=${TWELVE_KEY}`).then(r => r.json());
 
-                analyze(b3, g);
-                updateMarketStatus();
-                document.getElementById('debug').innerText = "Atualizado: " + new Date().toLocaleTimeString();
-            } catch (e) {}
-        }
+    const results = await Promise.allSettled([pBrapi, pTwelve]);
+    
+    let b3 = [];
+    if (results[0].status === 'fulfilled' && results[0].value.results) {
+      b3 = results[0].value.results;
+    }
+    
+    let g = {};
+    if (results[1].status === 'fulfilled') {
+      g = results[1].value;
+    }
 
-        function analyze(b3, g) {
-            const ind = b3.find(a => a.symbol === 'BOVA11') || {};
-            const winP = ind.regularMarketPrice || 0;
-            const winV = ind.regularMarketChangePercent || 0;
-            const winRange = ((ind.regularMarketDayHigh || 0) - (ind.regularMarketDayLow || 0)) * 1000;
+    lastFetchTime = Date.now();
+    processLogic(b3, g);
+    updateMarketStatus();
+    if (manual) showToast('Atualizado com Sucesso', 'ok');
+    flashElements();
 
-            const usd = g['USD/BRL'] || {};
-            const wdoP = parseFloat(usd.close || 0);
-            const wdoV = parseFloat(usd.percent_change || 0);
-            const wdoRange = (parseFloat(usd.high || 0) - parseFloat(usd.low || 0)) * 1000;
+  } catch (e) {
+    showToast('Erro de Conexão. Verifique a rede.', 'warn');
+  } finally {
+    isFetching = false;
+  }
+}
 
-            const brentV = parseFloat(g['BRENT']?.percent_change || 0);
-            const audV = parseFloat(g['AUD/USD']?.percent_change || 0);
-            const spxV = parseFloat(g['SPX']?.percent_change || 0);
-            const nasdaqV = parseFloat(g['IXIC']?.percent_change || 0);
-            const dxyV = parseFloat(g['DXY']?.percent_change || 0);
-            const vixV = parseFloat(g['VIX']?.percent_change || 0);
+function processLogic(b3, g) {
+  // Extração B3
+  const ind = b3.find(a => a.symbol === 'BOVA11') || {};
+  const winP = ind.regularMarketPrice || 0;
+  const winV = ind.regularMarketChangePercent || 0;
+  const winRange = ((ind.regularMarketDayHigh || 0) - (ind.regularMarketDayLow || 0)) * 1000;
 
-            let oreScore = 0;
-            let oreCount = 0;
-            b3.forEach(s => { if(ORE_BASKET.includes(s.symbol)) { oreScore += s.regularMarketChangePercent || 0; oreCount++; } });
-            const oreAvg = oreCount > 0 ? oreScore / oreCount : 0;
+  // Extração Global
+  const usd = g['USD/BRL'] || {};
+  const wdoP = parseFloat(usd.close || 0);
+  const wdoV = parseFloat(usd.percent_change || 0);
+  const wdoRange = (parseFloat(usd.high || 0) - parseFloat(usd.low || 0)) * 1000;
 
-            document.getElementById('win-price').innerText = winP ? (winP * 1000).toLocaleString('pt-BR') : '---';
-            document.getElementById('wdo-price').innerText = wdoP ? (wdoP * 1000).toFixed(1) : '---';
-            document.getElementById('win-range').innerText = `Range Est: ${winRange.toFixed(0)} pts | Vol: ${Math.abs(winV).toFixed(2)}%`;
-            document.getElementById('wdo-range').innerText = `Range Est: ${wdoRange.toFixed(1)} pts | Vol: ${Math.abs(wdoV).toFixed(2)}%`;
+  const brentV = parseFloat(g['BRENT']?.percent_change || 0);
+  const audV = parseFloat(g['AUD/USD']?.percent_change || 0);
+  const spxV = parseFloat(g['SPX']?.percent_change || 0);
+  const ndxV = parseFloat(g['IXIC']?.percent_change || 0);
+  const dxyV = parseFloat(g['DXY']?.percent_change || 0);
+  const vixV = parseFloat(g['VIX']?.percent_change || 0);
 
-            // LÓGICA CALIBRADA (PESO EXTRA NO NASDAQ PARA SENTIMENTO)
-            let finalScore = 0;
-            if (winV > 0.2) finalScore += 10; else if (winV < -0.2) finalScore -= 10;
-            if (wdoV < -0.1) finalScore += 10; else if (wdoV > 0.1) finalScore -= 10;
-            if (spxV > 0.05) finalScore += 20; else if (spxV < -0.05) finalScore -= 20;
-            if (nasdaqV > 0.05) finalScore += 15; else if (nasdaqV < -0.05) finalScore -= 15;
-            if (dxyV < -0.02) finalScore += 10; else if (dxyV > 0.02) finalScore -= 10;
-            if (brentV > 0.5) finalScore += 10; else if (brentV < -0.5) finalScore -= 10;
-            if (oreAvg > 0.3 && audV > 0) finalScore += 10; else if (oreAvg < -0.3 && audV < 0) finalScore -= 10;
-            if (vixV > 5) finalScore -= 25; else if (vixV > 2) finalScore -= 10;
+  // Cesta de Minério
+  let oreScore = 0, oreCount = 0;
+  b3.forEach(s => { if(ORE_BASKET.includes(s.symbol)) { oreScore += s.regularMarketChangePercent || 0; oreCount++; } });
+  const oreAvg = oreCount > 0 ? oreScore / oreCount : 0;
 
-            const v = document.getElementById('main-verdict');
-            if (finalScore >= 40) { v.innerText = "VIÉS DE ALTA (WIN)"; v.className = "verdict up"; }
-            else if (finalScore <= -40) { v.innerText = "VIÉS DE BAIXA (WIN)"; v.className = "verdict down"; }
-            else { v.innerText = "NEUTRO / AGUARDAR"; v.className = "verdict"; }
+  // 3. FATOR DE CORREÇÃO DE HORÁRIO (Ignora B3 antes das 09:05)
+  const dt = new Date();
+  const isPreMarket = (dt.getHours() === 9 && dt.getMinutes() < 5);
+  let localWinV = isPreMarket ? 0 : winV;
+  let localWdoV = isPreMarket ? 0 : wdoV;
 
-            const list = document.getElementById('stock-list');
-            list.innerHTML = `
-                <div class="stock-item"><span><b style="color:var(--blue);">NASDAQ (RISK-ON)</b></span><span class="${nasdaqV >= 0 ? 'up' : 'down'}">${nasdaqV.toFixed(2)}%</span></div>
-                <div class="stock-item"><span><b style="color:var(--warn);">VIX (MEDO)</b></span><span class="${vixV <= 0 ? 'up' : 'down'}">${vixV.toFixed(2)}%</span></div>
-                <div class="stock-item"><span><b>PETRÓLEO BRENT</b></span><span class="${brentV >= 0 ? 'up' : 'down'}">${brentV.toFixed(2)}%</span></div>
-                <div class="stock-item"><span><b>CESTA MINÉRIO (MÉDIA)</b></span><span class="${oreAvg >= 0 ? 'up' : 'down'}">${oreAvg.toFixed(2)}%</span></div>
-            `;
-            b3.filter(a => ['PETR4', 'VALE3', 'ITUB4'].includes(a.symbol)).forEach(s => {
-                const p = s.regularMarketChangePercent || 0;
-                list.innerHTML += `<div class="stock-item"><span><b>${s.symbol}</b></span><span class="${p >= 0 ? 'up' : 'down'}">${p.toFixed(2)}%</span></div>`;
-            });
-        }
+  // MOTOR DE CÁLCULO (SCORE WIN)
+  let finalScore = 0;
+  if (localWinV > 0.2) finalScore += 10; else if (localWinV < -0.2) finalScore -= 10;
+  if (localWdoV < -0.1) finalScore += 10; else if (localWdoV > 0.1) finalScore -= 10;
+  
+  if (spxV > 0.05) finalScore += 20; else if (spxV < -0.05) finalScore -= 20;
+  if (ndxV > 0.05) finalScore += 15; else if (ndxV < -0.05) finalScore -= 15;
+  if (dxyV < -0.02) finalScore += 10; else if (dxyV > 0.02) finalScore -= 10;
+  
+  if (brentV > 0.5) finalScore += 10; else if (brentV < -0.5) finalScore -= 10;
+  if (oreAvg > 0.3 && audV > 0) finalScore += 10; else if (oreAvg < -0.3 && audV < 0) finalScore -= 10;
+  
+  // VIX Panic Block
+  let isPanic = false;
+  if (vixV > 5) { finalScore -= 30; isPanic = true; } 
+  else if (vixV > 2) finalScore -= 10;
 
-        function updateMarketStatus() {
-            const h = new Date().getHours();
-            const s = document.getElementById('mkt-status');
-            if (h >= 9 && h < 18) { s.innerText = "B3 ABERTA"; s.className = "mkt-badge open"; }
-            else { s.innerText = "B3 FECHADA"; s.className = "mkt-badge closed"; }
-        }
+  // ATUALIZAÇÃO DOM: VALORES BRUTOS
+  document.getElementById('win-price').innerText = winP ? (winP * 1000).toLocaleString('pt-BR') : '---';
+  document.getElementById('win-vol').innerText = Math.abs(winV).toFixed(2) + '%';
+  document.getElementById('win-rng').innerText = winRange.toFixed(0);
 
-        fetchLocalNews();
-        setInterval(fetchLocalNews, 300000);
-        setInterval(engine, 60000); 
-        engine();
-    </script>
+  document.getElementById('wdo-price').innerText = wdoP ? (wdoP * 1000).toFixed(1) : '---';
+  document.getElementById('wdo-vol').innerText = Math.abs(wdoV).toFixed(2) + '%';
+  document.getElementById('wdo-rng').innerText = wdoRange.toFixed(1);
+
+  // DECISÃO EXECUTÁVEL (GATILHOS MME 20)
+  const wCard = document.getElementById('win-card');
+  const wSig = document.getElementById('win-signal');
+  const wMme = document.getElementById('win-mme');
+  const wForce = document.getElementById('win-force');
+  const wProb = document.getElementById('win-prob');
+
+  const dCard = document.getElementById('wdo-card');
+  const dSig = document.getElementById('wdo-signal');
+  const dMme = document.getElementById('wdo-mme');
+  const dForce = document.getElementById('wdo-force');
+  const dProb = document.getElementById('wdo-prob');
+
+  if (isPanic) {
+    // ESTADO DE PÂNICO GLOBAL
+    wCard.className = 'exec-card sell'; wSig.className = 'ex-signal down'; wSig.innerText = 'PERIGO MÁXIMO'; wMme.innerText = '⚠️ Abortar Pullback na MME 20'; wForce.innerText = '⚡⚡⚡'; wProb.innerText = '10%';
+    dCard.className = 'exec-card buy'; dSig.className = 'ex-signal up'; dSig.innerText = 'COMPRA FORTE'; dMme.innerText = 'Fuga para o Dólar (Risco Sistemático)'; dForce.innerText = '⚡⚡⚡'; dProb.innerText = '90%';
+  } else if (finalScore >= 40) {
+    // TENDÊNCIA DE ALTA (WIN)
+    wCard.className = 'exec-card buy'; wSig.className = 'ex-signal up'; wSig.innerText = 'COMPRA'; wMme.innerText = '✅ Gatilho no retorno à MME 20'; wForce.innerText = '⚡⚡⚡'; wProb.innerText = '85%';
+    dCard.className = 'exec-card sell'; dSig.className = 'ex-signal down'; dSig.innerText = 'VENDA'; dMme.innerText = '✅ Gatilho no retorno à MME 20'; dForce.innerText = '⚡⚡'; dProb.innerText = '80%';
+  } else if (finalScore <= -40) {
+    // TENDÊNCIA DE BAIXA (WIN)
+    wCard.className = 'exec-card sell'; wSig.className = 'ex-signal down'; wSig.innerText = 'VENDA'; wMme.innerText = '✅ Gatilho no retorno à MME 20'; wForce.innerText = '⚡⚡⚡'; wProb.innerText = '85%';
+    dCard.className = 'exec-card buy'; dSig.className = 'ex-signal up'; dSig.innerText = 'COMPRA'; dMme.innerText = '✅ Gatilho no retorno à MME 20'; dForce.innerText = '⚡⚡'; dProb.innerText = '80%';
+  } else {
+    // LATERAL / NEUTRO
+    wCard.className = 'exec-card neut'; wSig.className = 'ex-signal nt'; wSig.innerText = 'NEUTRO'; wMme.innerText = '🟡 Risco de Violino na MME 20'; wForce.innerText = '〰️'; wProb.innerText = '40%';
+    dCard.className = 'exec-card neut'; dSig.className = 'ex-signal nt'; dSig.innerText = 'NEUTRO'; dMme.innerText = '🟡 Risco de Violino na MME 20'; dForce.innerText = '〰️'; dProb.innerText = '40%';
+  }
+
+  // ATUALIZAÇÃO HEATMAP GLOBAL (Pílulas)
+  const hm = document.getElementById('heatmap');
+  const pills = [
+    { l: 'NDX', v: ndxV, i: false },
+    { l: 'SPX', v: spxV, i: false },
+    { l: 'VIX', v: vixV, i: true }, // VIX é invertido (queda é verde)
+    { l: 'OIL', v: brentV, i: false },
+    { l: 'MIN', v: oreAvg, i: false },
+    { l: 'AUD', v: audV, i: false }
+  ];
+  hm.innerHTML = pills.map(p => {
+    let clsV = 'c-nt', clsP = '';
+    if (p.v > 0) { clsV = p.i ? 'c-down' : 'c-up'; clsP = p.i ? 'p-down' : 'p-up'; }
+    else if (p.v < 0) { clsV = p.i ? 'c-up' : 'c-down'; clsP = p.i ? 'p-up' : 'p-down'; }
+    return `<div class="hm-pill ${clsP}"><div class="hm-lbl">${p.l}</div><div class="hm-val ${clsV}">${p.v > 0 ? '+'+p.v.toFixed(2) : p.v.toFixed(2)}%</div></div>`;
+  }).join('');
+
+  // ATUALIZAÇÃO BLUE CHIPS
+  const bGrid = document.getElementById('b3-grid');
+  bGrid.innerHTML = '';
+  b3.filter(a => ['PETR4', 'VALE3', 'ITUB4', 'BBAS3'].includes(a.symbol)).forEach(s => {
+    const p = s.regularMarketChangePercent || 0;
+    const c = p > 0 ? 'c-up' : (p < 0 ? 'c-down' : 'c-nt');
+    bGrid.innerHTML += `<div class="b3-card"><div class="b3-tkr">${s.symbol}</div><div class="b3-p ${c}">${p > 0 ? '+'+p.toFixed(2) : p.toFixed(2)}%</div></div>`;
+  });
+}
+
+// LÓGICA DE ARRASTE DE TELA (Pull to Refresh)
+document.addEventListener('touchstart', e => { touchstartY = e.touches[0].clientY; }, {passive: true});
+document.addEventListener('touchend', e => {
+  const touchendY = e.changedTouches[0].clientY;
+  // Se estiver no topo da página e o arraste para baixo for maior que 80px
+  if (window.scrollY === 0 && touchendY > touchstartY + 80) {
+    engine(true);
+  }
+}, {passive: true});
+
+// INICIALIZAÇÃO
+fetchLocalNews();
+setInterval(fetchLocalNews, 300000); // News a cada 5 min
+setInterval(() => engine(false), 60000); // Motor a cada 60 seg
+engine(false);
+
+</script>
 </body>
 </html>
