@@ -5,188 +5,175 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scanner Pro - WIN/WDO</title>
     <style>
-        :root { --bg: #0a0c10; --card: #161b22; --text: #c9d1d9; --up: #238636; --down: #f85149; --warn: #d29922; }
+        :root { --bg: #0a0c10; --card: #161b22; --text: #c9d1d9; --up: #238636; --down: #f85149; --warn: #d29922; --blue: #58a6ff; }
         body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 12px; font-size: 13px; }
-        .card { background: var(--card); border-radius: 10px; padding: 12px; border: 1px solid #30363d; margin-bottom: 8px; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .card { background: var(--card); border-radius: 10px; padding: 12px; border: 1px solid #30363d; margin-bottom: 8px; overflow: hidden; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .mkt-badge { font-size: 10px; padding: 3px 8px; border-radius: 10px; font-weight: bold; text-transform: uppercase; }
         .open { background: rgba(35, 134, 54, 0.1); color: var(--up); border: 1px solid var(--up); }
         .closed { background: rgba(248, 81, 73, 0.1); color: var(--down); border: 1px solid var(--down); }
-        
-        .master-signal { text-align: center; border: 2px solid #58a6ff; padding: 15px; }
-        .verdict { font-size: 22px; font-weight: 900; margin: 5px 0; letter-spacing: -1px; }
-        .prob-bar { height: 4px; background: #30363d; border-radius: 2px; margin: 10px 0; overflow: hidden; }
-        .prob-fill { height: 100%; width: 0%; transition: 1s; }
-
+        .master-signal { text-align: center; border: 2px solid var(--blue); padding: 15px; }
+        .verdict { font-size: 22px; font-weight: 900; margin: 5px 0; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .label { font-size: 10px; color: #8b949e; text-transform: uppercase; }
+        .label { font-size: 10px; color: #8b949e; text-transform: uppercase; font-weight: bold; margin-bottom: 5px; display: block; }
         .price { font-size: 18px; font-weight: bold; display: block; margin: 2px 0; }
         .stats { font-size: 10px; color: #8b949e; }
-        
         .stock-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #21262d; }
         .up { color: var(--up); } .down { color: var(--down); }
+        .widget-container { height: 260px; margin-top: 5px; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <span style="font-weight: bold; color: #58a6ff;">INSTITUTIONAL SCANNER</span>
+        <span style="font-weight: bold; color: var(--blue);">INSTITUTIONAL SCANNER</span>
         <div id="mkt-status" class="mkt-badge">Verificando...</div>
     </div>
 
     <div class="card master-signal">
-        <div class="label">Veredito Baseado no Fluxo (Spot / Macro)</div>
-        <div id="main-verdict" class="verdict">ANALISANDO...</div>
-        <div class="prob-bar"><div id="prob-fill" class="prob-fill"></div></div>
-        <div id="main-prob" class="stats">Sincronizando dados macro e micro...</div>
+        <div class="label">Veredito Macro de Confluência</div>
+        <div id="main-verdict" class="verdict">SINCRO...</div>
+        <div id="main-prob" class="stats">Cruzando Cesta de Minério + AUD/USD + Macro...</div>
+    </div>
+
+    <div class="card">
+        <span class="label" style="color: var(--warn);">Agenda de Alto/Médio Impacto</span>
+        <div class="widget-container">
+            <div class="tradingview-widget-container">
+                <div class="tradingview-widget-container__widget"></div>
+                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
+                { "colorTheme": "dark", "isResponsive": true, "width": "100%", "height": "100%", "importanceFilter": "0,1", "currencyFilter": "BRL,USD" }
+                </script>
+            </div>
+        </div>
     </div>
 
     <div class="grid">
         <div class="card">
-            <span class="label">BOVA11 (Proxy p/ WIN)</span>
+            <span class="label">WIN (Est. Pontos)</span>
             <span id="win-price" class="price">---</span>
-            <div id="win-range" class="stats">Range: -- | Vol: --</div>
+            <div id="win-range" class="stats">--</div>
         </div>
         <div class="card">
-            <span class="label">DÓLAR Spot (TwelveData)</span>
+            <span class="label">WDO (Est. Pontos)</span>
             <span id="wdo-price" class="price">---</span>
-            <div id="wdo-range" class="stats">Range: -- | Vol: --</div>
+            <div id="wdo-range" class="stats">--</div>
+        </div>
+    </div>
+
+    <div class="card" style="padding: 5px 12px; height: 50px;">
+        <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-single-quote.js" async>
+            { "symbol": "SGX:FEF1!", "width": "100%", "colorTheme": "dark", "isTransparent": true, "locale": "br" }
+            </script>
         </div>
     </div>
 
     <div class="card">
-        <div class="label" style="margin-bottom: 10px;">Termômetro de Blue Chips & Setores</div>
-        <div id="stock-list">
-            </div>
+        <div class="label">Radar de Sentimento Institucional</div>
+        <div id="stock-list"></div>
     </div>
 
-    <div id="debug" style="font-size: 9px; color: #484f58; text-align: center;">Iniciando motor de análise...</div>
+    <div id="debug" style="font-size: 9px; color: #484f58; text-align: center; margin-top: 10px;">Aguardando sinal global...</div>
 
     <script>
         const BRAPI_KEY = 'pezVZGKkdR3gYuJPJWN9rB';
         const TWELVE_KEY = '55933fcca4154a0f901d96d1d9097ecf';
-        // Removemos o IBOV e USDBRL da Brapi. Adicionamos o BOVA11.
-        const STOCKS = ['BOVA11', 'PETR4', 'VALE3', 'ITUB4', 'BBAS3', 'GGBR4', 'ABEV3', 'WEGE3'];
+        
+        // CESTA DE 5 GIGANTES PARA MINÉRIO
+        const STOCKS = ['BOVA11', 'PETR4', 'VALE3', 'ITUB4', 'BBAS3', 'CMIN3', 'BHPG34', 'RIOT34', 'FSUG34'];
+        const ORE_BASKET = ['VALE3', 'CMIN3', 'BHPG34', 'RIOT34', 'FSUG34'];
 
         async function engine() {
             try {
-                // 1. Coleta B3 via Brapi (Ações e ETFs não têm bloqueio)
-                const promessasBrapi = STOCKS.map(ativo => 
-                    fetch(`https://brapi.dev/api/quote/${ativo}?token=${BRAPI_KEY}`)
-                        .then(res => res.json())
-                        .catch(err => ({ results: [] }))
-                );
+                const pBrapi = STOCKS.map(s => fetch(`https://brapi.dev/api/quote/${s}?token=${BRAPI_KEY}`).then(r => r.json()).catch(() => ({results:[]})));
+                const rBrapi = await Promise.all(pBrapi);
+                let b3 = []; rBrapi.forEach(r => { if(r.results?.[0]) b3.push(r.results[0]); });
 
-                const respostasBrapi = await Promise.all(promessasBrapi);
-                
-                let b3Results = [];
-                respostasBrapi.forEach(resposta => {
-                    if (resposta.results && resposta.results.length > 0) {
-                        b3Results.push(resposta.results[0]);
-                    }
-                });
-
-                // 2. Coleta Macro e Moedas via TwelveData (Adicionado o par USD/BRL)
                 let g = {};
                 try {
-                    const gRes = await fetch(`https://api.twelvedata.com/quote?symbol=DXY,SPX,USD/BRL&apikey=${TWELVE_KEY}`);
-                    g = await gRes.json();
-                } catch(err) {
-                    console.log("Erro ao buscar dados globais TwelveData.");
-                }
+                    // INCLUÍDO AUD/USD PARA VALIDAÇÃO DO MINÉRIO
+                    g = await fetch(`https://api.twelvedata.com/quote?symbol=DXY,SPX,USD/BRL,BRENT,AUD/USD&apikey=${TWELVE_KEY}`).then(r => r.json());
+                } catch(e){}
 
-                if (b3Results.length > 0 || Object.keys(g).length > 0) {
-                    analyze(b3Results, g);
-                    document.getElementById('debug').innerText = "Sincronizado: " + new Date().toLocaleTimeString();
-                } else {
-                    document.getElementById('debug').innerText = "Erro ao acessar os servidores de cotação.";
-                }
+                analyze(b3, g);
                 updateMarketStatus();
-            } catch (e) {
-                document.getElementById('debug').innerText = "Erro na API: Aguardando próxima tentativa...";
-            }
+                document.getElementById('debug').innerText = "Atualizado: " + new Date().toLocaleTimeString();
+            } catch (e) {}
         }
 
         function analyze(b3, g) {
-            // Extração B3 (Índice através do ETF BOVA11)
-            const indFull = b3.find(a => a.symbol === 'BOVA11') || {};
-            const winPrice = indFull.regularMarketPrice || 0;
-            const winRange = (indFull.regularMarketDayHigh || 0) - (indFull.regularMarketDayLow || 0);
-            const winVol = indFull.regularMarketChangePercent || 0;
+            const ind = b3.find(a => a.symbol === 'BOVA11') || {};
+            const winP = ind.regularMarketPrice || 0;
+            const winV = ind.regularMarketChangePercent || 0;
+            const winRange = ((ind.regularMarketDayHigh || 0) - (ind.regularMarketDayLow || 0)) * 1000;
 
-            // Extração TwelveData (Dólar Oficial e Macro)
-            const usdData = g['USD/BRL'] || {};
-            const wdoPrice = parseFloat(usdData.close || 0);
-            const wdoRange = parseFloat(usdData.high || 0) - parseFloat(usdData.low || 0);
-            const wdoVol = parseFloat(usdData.percent_change || 0);
+            const usd = g['USD/BRL'] || {};
+            const wdoP = parseFloat(usd.close || 0);
+            const wdoV = parseFloat(usd.percent_change || 0);
+            const wdoRange = (parseFloat(usd.high || 0) - parseFloat(usd.low || 0)) * 1000;
 
-            // Atualiza Painel de Preços
-            document.getElementById('win-price').innerText = winPrice > 0 ? 'R$ ' + winPrice.toFixed(2) : '---';
-            document.getElementById('wdo-price').innerText = wdoPrice > 0 ? 'R$ ' + wdoPrice.toFixed(4) : '---';
-            document.getElementById('win-range').innerText = `Range: ${winRange > 0 ? winRange.toFixed(2) : '--'} pts | Vol: ${Math.abs(winVol).toFixed(2)}%`;
-            document.getElementById('wdo-range').innerText = `Range: ${wdoRange > 0 ? wdoRange.toFixed(4) : '--'} pts | Vol: ${Math.abs(wdoVol).toFixed(2)}%`;
+            // DADOS MACRO
+            const brentV = parseFloat(g['BRENT']?.percent_change || 0);
+            const audV = parseFloat(g['AUD/USD']?.percent_change || 0);
+            const spxV = parseFloat(g['SPX']?.percent_change || 0);
+            const dxyV = parseFloat(g['DXY']?.percent_change || 0);
 
-            // Lógica de Veredito Seguro
-            let score = 0;
-            const dxyVar = parseFloat(g['DXY']?.percent_change || 0);
-            const spxVar = parseFloat(g['SPX']?.percent_change || 0);
+            // CÁLCULO DA CESTA DE MINÉRIO
+            let oreScore = 0;
+            let oreCount = 0;
+            b3.forEach(s => {
+                if(ORE_BASKET.includes(s.symbol)) {
+                    oreScore += s.regularMarketChangePercent || 0;
+                    oreCount++;
+                }
+            });
+            const oreAvg = oreCount > 0 ? oreScore / oreCount : 0;
 
-            // Pesos do motor
-            if (winVol > 0) score += 20; else if (winVol < 0) score -= 20;
-            if (wdoVol < 0) score += 20; else if (wdoVol > 0) score -= 20;
-            if (spxVar > 0) score += 30; else if (spxVar < 0) score -= 30;
-            if (dxyVar < 0) score += 30; else if (dxyVar > 0) score -= 30;
+            document.getElementById('win-price').innerText = winP ? (winP * 1000).toLocaleString('pt-BR') : '---';
+            document.getElementById('wdo-price').innerText = wdoP ? (wdoP * 1000).toFixed(1) : '---';
+            document.getElementById('win-range').innerText = `Range Est: ${winRange.toFixed(0)} pts | Vol: ${Math.abs(winV).toFixed(2)}%`;
+            document.getElementById('wdo-range').innerText = `Range Est: ${wdoRange.toFixed(1)} pts | Vol: ${Math.abs(wdoV).toFixed(2)}%`;
 
-            const verdict = document.getElementById('main-verdict');
-            const probText = document.getElementById('main-prob');
-            const fill = document.getElementById('prob-fill');
-
-            const absScore = Math.min(Math.abs(score), 100);
-            fill.style.width = absScore + '%';
+            // LÓGICA DE VEREDITO COM VALIDAÇÃO CRUZADA (SCORE MAX 100)
+            let finalScore = 0;
             
-            if (score > 20) {
-                verdict.innerText = "COMPRA (WIN) / VENDA (WDO)";
-                verdict.className = "verdict up";
-                fill.style.background = "var(--up)";
-                probText.innerText = `Probabilidade: ${absScore}% | Tendência: ALTA (Suporte Macro)`;
-            } else if (score < -20) {
-                verdict.innerText = "VENDA (WIN) / COMPRA (WDO)";
-                verdict.className = "verdict down";
-                fill.style.background = "var(--down)";
-                probText.innerText = `Probabilidade: ${absScore}% | Tendência: BAIXA (Pressão Global)`;
-            } else {
-                verdict.innerText = "AGUARDAR / NEUTRO";
-                verdict.className = "verdict";
-                fill.style.background = "var(--warn)";
-                probText.innerText = `Mercado sem direção macroeconômica clara.`;
-            }
+            if (winV > 0.2) finalScore += 15; else if (winV < -0.2) finalScore -= 15;
+            if (wdoV < -0.1) finalScore += 15; else if (wdoV > 0.1) finalScore -= 15;
+            if (spxV > 0.05) finalScore += 25; else if (spxV < -0.05) finalScore -= 25;
+            if (dxyV < -0.02) finalScore += 15; else if (dxyV > 0.02) finalScore -= 15;
+            
+            // PESO DAS COMMODITIES (30% DO SCORE TOTAL)
+            if (brentV > 0.5) finalScore += 15; else if (brentV < -0.5) finalScore -= 15;
+            
+            // CONFLUÊNCIA MINÉRIO: CESTA + AUD/USD
+            if (oreAvg > 0.3 && audV > 0) finalScore += 15; 
+            else if (oreAvg < -0.3 && audV < 0) finalScore -= 15;
 
-            // Lista de Stocks (Filtrando para não mostrar o BOVA11 na lista de ações)
-            const stockList = document.getElementById('stock-list');
-            stockList.innerHTML = '';
-            b3.filter(a => a.symbol !== 'BOVA11').forEach(s => {
-                const pct = s.regularMarketChangePercent || 0;
-                const trend = pct >= 0 ? 'UP' : 'DOWN';
-                const p = Math.min(Math.abs(pct * 40), 95).toFixed(0);
-                stockList.innerHTML += `
-                    <div class="stock-item">
-                        <span><b>${s.symbol}</b></span>
-                        <span class="${trend === 'UP' ? 'up' : 'down'}">${pct.toFixed(2)}% (${trend})</span>
-                        <span style="font-size: 10px; color: #8b949e;">Prob. ${p}%</span>
-                    </div>
-                `;
+            const v = document.getElementById('main-verdict');
+            if (finalScore >= 40) { v.innerText = "VIÉS DE ALTA (WIN)"; v.className = "verdict up"; }
+            else if (finalScore <= -40) { v.innerText = "VIÉS DE BAIXA (WIN)"; v.className = "verdict down"; }
+            else { v.innerText = "NEUTRO / AGUARDAR"; v.className = "verdict"; }
+
+            const list = document.getElementById('stock-list');
+            list.innerHTML = `
+                <div class="stock-item"><span><b>PETRÓLEO BRENT</b></span><span class="${brentV >= 0 ? 'up' : 'down'}">${brentV.toFixed(2)}%</span></div>
+                <div class="stock-item"><span><b>CESTA MINÉRIO (MÉDIA)</b></span><span class="${oreAvg >= 0 ? 'up' : 'down'}">${oreAvg.toFixed(2)}%</span></div>
+                <div class="stock-item"><span><b>AUD/USD (PROXY MINÉRIO)</b></span><span class="${audV >= 0 ? 'up' : 'down'}">${audV.toFixed(2)}%</span></div>
+            `;
+            
+            b3.filter(a => ['PETR4', 'VALE3', 'ITUB4', 'BBAS3'].includes(a.symbol)).forEach(s => {
+                const p = s.regularMarketChangePercent || 0;
+                list.innerHTML += `<div class="stock-item"><span><b>${s.symbol}</b></span><span class="${p >= 0 ? 'up' : 'down'}">${p.toFixed(2)}%</span></div>`;
             });
         }
 
         function updateMarketStatus() {
-            const now = new Date();
-            const hour = now.getHours();
-            const status = document.getElementById('mkt-status');
-            if (hour >= 9 && hour < 18) {
-                status.innerText = "B3 ABERTA"; status.className = "mkt-badge open";
-            } else {
-                status.innerText = "B3 FECHADA"; status.className = "mkt-badge closed";
-            }
+            const h = new Date().getHours();
+            const s = document.getElementById('mkt-status');
+            if (h >= 9 && h < 18) { s.innerText = "B3 ABERTA"; s.className = "mkt-badge open"; }
+            else { s.innerText = "B3 FECHADA"; s.className = "mkt-badge closed"; }
         }
 
         setInterval(engine, 60000); 
